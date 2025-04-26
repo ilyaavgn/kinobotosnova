@@ -3,7 +3,7 @@ const admin = require('firebase-admin');
 const path = require('path');
 
 // Инициализация Firebase
-const serviceAccount = require('./path/to/firebase-credentials.json');  // Убедитесь, что путь верный
+const serviceAccount = require('.\botkinohata\firebase-credentials.json');  // Убедитесь, что путь верный
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
