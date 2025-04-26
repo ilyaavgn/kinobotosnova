@@ -1,14 +1,18 @@
 ﻿const { Telegraf } = require('telegraf');
 const admin = require('firebase-admin');
+const path = require('path');
 
 // Инициализация Firebase
+const serviceAccount = require('./path/to/firebase-credentials.json');  // Убедитесь, что путь верный
+
 admin.initializeApp({
-  credential: admin.credential.cert(require('./firebase-credentials.json'))
+  credential: admin.credential.cert(serviceAccount)
 });
+
 const db = admin.firestore();
 
 // Создание экземпляра бота
-const bot = new Telegraf('7183881410:AAFi-w-FWwnoeI35JYniue50H6zxhiJxFtE');
+const bot = new Telegraf('YOUR_BOT_TOKEN'); // Замените на ваш реальный токен
 
 // Команда /start - Приветственное сообщение
 bot.start((ctx) => {
@@ -107,17 +111,18 @@ bot.command('support', (ctx) => {
   const userId = ctx.from.id;
   const userRef = db.collection('users').doc(userId.toString());
 
-  const supportMessage = ctx.message.text.split(' ').slice(1).join(' ');
+  const supportMessage = ctx.message.text.split(' ').slice(1).join(' '); // Извлекаем текст запроса
 
   userRef.get().then((doc) => {
     if (doc.exists) {
-      // Сохраняем запрос в базе данных
+      // Сохраняем запрос в коллекции support
       const userData = doc.data();
       const supportRef = db.collection('support').doc();
       supportRef.set({
-        userId: userData.email,
+        userId: userData.email,  // Или можно использовать userId для идентификации
         message: supportMessage,
-        createdAt: new Date()
+        createdAt: new Date().toISOString(),
+        status: 'Ожидает ответа'
       }).then(() => {
         ctx.reply('Ваш запрос отправлен в поддержку. Ожидайте ответа.');
       }).catch((err) => {
