@@ -1,0 +1,421 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>КиноХата</title>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Unbounded', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #000;
+  color: #fff;
+  overflow-x: hidden;
+}
+    .logo {
+      font-size: 28px;
+      color: gold;
+    }
+    .profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .profile img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid transparent;
+      transition: box-shadow 0.3s ease, border 0.3s ease;
+      box-shadow: none;
+    }
+    .auth-box {
+      background: #1a1a1a;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 20px gold;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 300px;
+    }
+    .auth-box input {
+      padding: 10px;
+      border-radius: 5px;
+      border: none;
+    }
+    .auth-box button {
+      background: linear-gradient(45deg, gold, orange);
+      border: none;
+      color: black;
+      padding: 10px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 20px;
+    }
+    .movie-card {
+      background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+      border-radius: 16px;
+      overflow: hidden;
+      margin: 15px;
+      padding: 10px;
+      width: 220px;
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .movie-card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+    }
+    .movie-card img {
+      width: 100%;
+      height: 320px;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+    .info {
+      padding: 12px 6px 0;
+      text-align: center;
+    }
+    .info h4 {
+      margin: 0;
+      font-size: 16px;
+    }
+    .info p {
+      margin: 6px 0 0;
+      font-size: 14px;
+    }
+    .info button {
+      margin-top: 10px;
+      background: gold;
+      color: black;
+      font-weight: bold;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .info button:hover {
+      background: orange;
+    }
+    .gray { color: gray; }
+    .lime { color: lime; }
+    .gold { color: gold; }
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 5px solid rgba(255, 255, 255, 0.2);
+      border-top-color: gold;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 50px auto;
+    }
+    @keyframes spin {$1}
+
+
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+    }
+  </style>
+</head>
+<body>
+<header style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background: #111;">
+  <div class="logo">КиноХата</div>
+  <a href="https://t.me/example" target="_blank" style="margin-left: 20px; background: gold; color: black; padding: 8px 16px; border-radius: 8px; text-decoration: none; font-weight: bold; display: flex; align-items: center; gap: 8px; transition: background 0.3s;"><img src="https://images.icon-icons.com/2449/PNG/512/headphones_head_set_chat_live_support_icon_148822.png" alt="Support" style="width:20px; height:20px;">Поддержка</a>
+  <div class="profile" id="profileBox" style="display:none; align-items: center; gap: 10px;">
+    <img id="userAvatar" src="" alt="avatar" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+      <div id="userEmail" style="font-size: 14px;"></div>
+      <div id="userId" style="font-size: 12px; cursor: pointer;" onclick="navigator.clipboard.writeText(this.innerText)"></div>
+      <div id="userSub" style="font-size: 12px;"></div>
+    </div>
+  </div>
+</header>
+
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Пароль">
+    <button onclick="login()">Войти</button>
+    <button onclick="register()">Регистрация</button>
+  </div>
+</div>
+<div id="genreFilters" style="display:flex; flex-wrap:wrap; justify-content:center; gap:10px; padding:20px;"></div>
+<h2 style="text-align:center; color:gold;">Продолжить просмотр</h2>
+<div class="grid" id="continueWatching"></div>
+<div class="loader" id="loader"></div>
+<div class="grid" id="movieGrid"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+<script>
+async function loadContinueWatching(historyArray) {
+  const container = document.getElementById('continueWatching');
+  container.innerHTML = '';
+  if (!historyArray.length) {
+    container.innerHTML = '<p style="color:gray; text-align:center; font-size:18px;">Вы ещё не посмотрели ни одного фильма</p>';
+    return;
+  }
+  for (const kpId of historyArray.slice(-10).reverse()) {
+    try {
+      const res = await fetch(`https://vibix.org/api/v1/publisher/videos/kp/${kpId}`, { headers });
+      const movie = await res.json();
+      const rating = parseFloat(movie.kp_rating) || 0;
+      let color = 'gray';
+      if (rating > 7.8) color = 'gold';
+      else if (rating >= 6.1) color = 'lime';
+      const card = document.createElement('div');
+      card.className = 'movie-card';
+      card.innerHTML = `
+        <img src="\${movie.poster_url || 'https://i.ibb.co/5hPNZ90x/avatar-default-player.png'}" alt="\${movie.name}">
+        <div class="info">
+          <h4>${movie.name}</h4>
+          <p>${movie.year} <span class="${color}">★ ${rating.toFixed(1)}</span></p>
+          <button onclick="openMovieModal(${movie.kp_id})">Продолжить</button>
+        </div>
+      `;
+      container.appendChild(card);
+    } catch (e) {
+      console.warn('Не удалось загрузить фильм из истории:', e);
+    }
+  }
+}
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAErX5NoFz5wQfq8h2psBuUOtTzI1-xt60",
+    authDomain: "moveeweb-d8faa.firebaseapp.com",
+    projectId: "moveeweb-d8faa",
+    storageBucket: "moveeweb-d8faa.appspot.com",
+    messagingSenderId: "141216164639",
+    appId: "1:141216164639:web:7f36bf0ad7d908ff2b9e2a"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const avatars = [
+    'https://i.ibb.co/LXVXF6Fj/13.png', 'https://i.ibb.co/ymS0RMcy/16.png', 'https://i.ibb.co/V0Ng5c9x/14.png',
+    'https://i.ibb.co/d0J3cCLd/10.png', 'https://i.ibb.co/4nQN1gP1/Training-Preview.png',
+    'https://i.ibb.co/KjTdLXSv/2-0.png', 'https://i.ibb.co/8D7QgNkT/1-0.png',
+    'https://i.ibb.co/Qwp5kSF/3-0.png', 'https://i.ibb.co/0R6ytFTr/8.png', 'https://i.ibb.co/NdqzrYQw/9.png'
+  ];
+
+  let currentPage = 1;
+  let loading = false;
+
+  function renderGenreFilters() {
+  const container = document.getElementById('genreFilters');
+  genres.forEach(genre => {
+    const button = document.createElement('button');
+    button.textContent = genre;
+    button.style.background = 'linear-gradient(135deg, #444, #222)';
+    button.style.border = '1px solid gold';
+    button.style.color = 'white';
+    button.style.padding = '10px 16px';
+    button.style.borderRadius = '12px';
+    button.style.cursor = 'pointer';
+    button.style.fontSize = '14px';
+    button.onclick = () => {
+      currentPage = 1;
+      document.getElementById('movieGrid').innerHTML = '';
+      loadMovies(genre);
+    };
+    container.appendChild(button);
+  });
+}
+
+auth.onAuthStateChanged(async user => {
+    let userHistory = [];
+    if (user) {
+      document.getElementById("authOverlay").style.display = "none";
+      const doc = await db.collection("users").doc(user.uid).get();
+      const data = doc.data();
+      isSubscribed = data.subscription;
+      const avatar = data.avatar || avatars[Math.floor(Math.random() * avatars.length)];
+
+      const avatarEl = document.getElementById("userAvatar");
+      avatarEl.src = avatar;
+      avatarEl.style.border = data.subscription ? '2px solid lime' : '2px solid gray';
+      avatarEl.style.boxShadow = data.subscription ? '0 0 8px lime' : 'none';
+
+      document.getElementById("userEmail").innerText = data.email;
+      document.getElementById("userId").innerText = `ID: ${data.customId}`;
+      document.getElementById("userSub").innerHTML = `Подписка: ${data.subscription ? '<span style=\"color:lime; display:inline-flex; align-items:center; gap:5px;\">Активна <img src=\"https://images.icon-icons.com/1499/PNG/512/emblemdefault_103452.png\" alt=\"Active\" style=\"width:16px; height:16px;\"></span>' : '<span style=\"color:red;\">Нет</span>'}`;
+
+      document.getElementById("profileBox").style.display = 'flex';
+
+      userHistory = data.history || [];
+      if (userHistory.length > 0) loadContinueWatching(userHistory);
+
+      renderGenreFilters();
+      loadMovies();
+    }
+  });
+
+  async function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+    } catch (err) {
+      alert("Ошибка входа: " + err.message);
+    }
+  }
+
+  async function register() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    try {
+      const cred = await auth.createUserWithEmailAndPassword(email, password);
+      const id = Math.floor(100000000 + Math.random() * 900000000);
+      const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)];
+      await db.collection("users").doc(cred.user.uid).set({
+        email,
+        customId: id,
+        subscription: false,
+        avatar: randomAvatar,
+        history: [],
+        moviesWatched: 0
+      });
+    } catch (err) {
+      alert("Ошибка регистрации: " + err.message);
+    }
+  }
+
+  const API_KEY = '9786|hclDmtX4tPqUObyl5z3671BNbcQkmJCRkOxU4sUi9fc0c574';
+  const headers = { Authorization: `Bearer ${API_KEY}` };
+
+const genres = [
+  'боевик', 'драма', 'комедия', 'триллер', 'ужасы', 'мелодрама', 'приключения', 'фантастика', 'фэнтези', 'аниме'
+];
+
+  async function loadMovies(filterGenre = '') {
+  try {
+    const res = await fetch(`https://vibix.org/api/v1/publisher/videos/links?page=${currentPage}&limit=50`, { headers });
+    if (!res.ok) throw new Error(`Ошибка сети: ${res.status}`);
+
+    const data = await res.json();
+    const grid = document.getElementById('movieGrid');
+    document.getElementById('loader').style.display = 'none';
+
+    data.data.forEach(movie => {
+      const card = document.createElement('div');
+      card.className = 'movie-card';
+      const rating = parseFloat(movie.kp_rating) || 0;
+      let color = 'gray';
+      if (rating > 7.8) color = 'gold';
+      else if (rating >= 6.1) color = 'lime';
+
+      card.innerHTML = `
+        <img src="${movie.poster_url}" alt="${movie.name}">
+        <div class="info">
+          <h4>${movie.name}</h4>
+          <p>${movie.year || ''} <span class="${color}">★ ${rating.toFixed(1)}</span></p>
+          <button onclick="openMovieModal(${movie.kp_id})">Подробнее</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+
+    loading = false;
+    currentPage++;
+  } catch (error) {
+    console.error("Ошибка загрузки фильмов:", error);
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('movieGrid').innerHTML = '<p style="color:red; font-size:18px; text-align:center;">Не удалось загрузить фильмы. Попробуйте позже.</p>';
+  }
+}
+
+
+  window.addEventListener('scroll', () => {
+    const bottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+    if (bottom && !loading) {
+      loading = true;
+      document.getElementById('loader').style.display = 'block';
+      loadMovies();
+    }
+  });
+
+    
+</script>
+<div id="movieModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:1000; justify-content:center; align-items:center;">
+  <div style="display:flex; flex-wrap:wrap; gap:20px; background:#1a1a1a; padding:20px; border-radius:12px; max-width:900px; width:90%;">
+    <img id="modalPoster" src="" style="width:300px; border-radius:10px; object-fit:cover;">
+    <div style="flex:1; color:white; display:flex; flex-direction:column; gap:10px;">
+      <h2 id="modalTitle" style="margin:0; color:gold;"></h2>
+      <p><strong>Год:</strong> <span id="modalYear"></span></p>
+      <p><strong>Страна:</strong> <span id="modalCountry"></span></p>
+      <p><strong>Жанры:</strong> <span id="modalGenres"></span></p>
+      <p><strong>Рейтинг:</strong> <span id="modalRating"></span></p>
+      <p><strong>Описание:</strong> <span id="modalDesc"></span></p>
+      <div style="margin-top:auto; display:flex; gap:10px;">
+        <button id="modalWatchBtn" style="padding:10px 20px; background:lime; color:black; font-weight:bold; border:none; border-radius:6px; cursor:pointer;">Смотреть</button>
+        <button onclick="closeMovieModal()" style="padding:10px 20px; background:#444; color:white; border:none; border-radius:6px; cursor:pointer;">Закрыть</button>
+      </div>
+    </div>
+  </div>
+  <iframe id="modalIframe" src="" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; border:none; z-index:1001;"></iframe>
+</div>
+<div id="subscribeOverlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.95); z-index:1002; justify-content:center; align-items:center;">
+  <div style="background:#222; padding:30px; border-radius:10px; text-align:center; max-width:400px; color:white;">
+    <h2 style="color:gold;">Оформите подписку</h2>
+    <p>Для просмотра фильма необходима активная подписка.</p>
+    <p>Стоимость: <strong style="color:lime">90 ₽/мес</strong></p>
+    <button onclick="alert('Переход к оплате...')" style="margin-top:15px; padding:10px 20px; background:gold; color:black; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">Оформить</button>
+    <div><button onclick="document.getElementById('subscribeOverlay').style.display='none'" style="margin-top:10px; padding:8px 16px; background:#444; color:white; border:none; border-radius:6px; cursor:pointer;">Отмена</button></div>
+  </div>
+</div>
+<script>
+  let isSubscribed = false;
+
+  async function openMovieModal(kpId) {
+    try {
+      const res = await fetch(`https://vibix.org/api/v1/publisher/videos/kp/${kpId}`, { headers });
+      const movie = await res.json();
+      document.getElementById('modalPoster').src = movie.poster_url;
+      document.getElementById('modalTitle').textContent = movie.name;
+      document.getElementById('modalYear').textContent = movie.year || '-';
+      document.getElementById('modalCountry').textContent = (movie.country || []).join(', ');
+      document.getElementById('modalGenres').textContent = (movie.genre || []).join(', ');
+      document.getElementById('modalRating').textContent = `★ ${movie.kp_rating || '-'} (KP)`;
+      document.getElementById('modalDesc').textContent = movie.description || 'Описание отсутствует';
+
+      const btn = document.getElementById('modalWatchBtn');
+      const iframe = document.getElementById('modalIframe');
+      btn.onclick = () => {
+        if (isSubscribed) {
+          iframe.src = movie.iframe_url;
+          iframe.style.display = 'block';
+          document.getElementById('movieModal').style.display = 'none';
+        } else {
+          document.getElementById('subscribeOverlay').style.display = 'flex';
+        }
+      };
+      document.getElementById('movieModal').style.display = 'flex';
+    } catch (err) {
+      alert('Не удалось загрузить информацию о фильме');
+    }
+  }
+
+  function closeMovieModal() {
+    document.getElementById('movieModal').style.display = 'none';
+    document.getElementById('modalIframe').style.display = 'none';
+    document.getElementById('modalIframe').src = '';
+  }
+</script>
+</body>
+</html>
